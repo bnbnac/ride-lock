@@ -49,4 +49,8 @@ public class DriverStatus {
 	public OffsetDateTime getUpdatedAt() {
 		return updatedAt;
 	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
 }
