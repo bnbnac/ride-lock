@@ -2,6 +2,8 @@
 !README.md
 application-local.yaml
 application-local.yml
+application-remote.yaml
+application-remote.yml
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
