@@ -10,6 +10,8 @@ import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// LocationUpdateService 결과 검증(DB에 실제로 뭐가 남았는지) 전용 - 호출 순서 자체는
+// LocationUpdateServiceOrderTest(Mockito 단위 테스트)가 맡는다. 관심사가 달라 파일을 나눴다.
 @SpringBootTest
 @Transactional
 class LocationUpdateServiceTest extends AbstractIntegrationTest {
