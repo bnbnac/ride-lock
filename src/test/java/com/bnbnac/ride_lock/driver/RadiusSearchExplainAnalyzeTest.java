@@ -28,18 +28,18 @@ class RadiusSearchExplainAnalyzeTest extends AbstractIntegrationTest {
 			EXPLAIN ANALYZE
 			SELECT driver_id
 			FROM driver_location
-			WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326)::geography, 5000)
+			WHERE ST_DWithin(location, ST_Transform(ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326), 5179), 5000)
 			""";
 
 	private static final String JOIN_QUERY = """
 			EXPLAIN ANALYZE
 			SELECT l.driver_id,
-			       ST_Distance(l.location, ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326)::geography) AS dist_m
+			       ST_Distance(l.location, ST_Transform(ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326), 5179)) AS dist_m
 			FROM driver_location l
 			JOIN driver_status s ON s.driver_id = l.driver_id
 			WHERE s.status = 'IDLE'
 			  AND ST_DWithin(l.location,
-			                 ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326)::geography,
+			                 ST_Transform(ST_SetSRID(ST_MakePoint(126.9707, 37.5547), 4326), 5179),
 			                 5000)
 			ORDER BY dist_m
 			LIMIT 20
@@ -87,10 +87,10 @@ class RadiusSearchExplainAnalyzeTest extends AbstractIntegrationTest {
 
 		entityManager.createNativeQuery(
 				"INSERT INTO driver_location (driver_id, location, updated_at) " +
-						"SELECT gs, ST_SetSRID(ST_MakePoint(" +
+						"SELECT gs, ST_Transform(ST_SetSRID(ST_MakePoint(" +
 						"126.9707 + (random() - 0.5) * 0.5, " +
 						"37.5547 + (random() - 0.5) * 0.5" +
-						"), 4326)::geography, now() " +
+						"), 4326), 5179), now() " +
 						"FROM generate_series(1, " + DRIVER_COUNT + ") AS gs")
 				.executeUpdate();
 	}
