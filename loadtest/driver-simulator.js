@@ -1,16 +1,13 @@
 // 기사 위치 랜덤워크 시뮬레이터. 인앱 스케줄러 대신 k6를 재사용한다 - "N명이 각자 주기적으로
 // 요청을 날린다"는 구조가 3주차 부하테스트 스크립트와 동일해서 별도 Java 프로세스가 불필요했다.
 //
-// 실행: k6 run -e AUTH_PASSWORD=<bootRun 콘솔의 랜덤 비밀번호> loadtest/driver-simulator.js
+// 실행: k6 run loadtest/driver-simulator.js
 // 옵션(env var): BASE_URL(기본 http://localhost:8080), DRIVER_COUNT(=vus, 기본 20),
 //                DURATION(기본 10m), INTERVAL_SECONDS(기본 5) - §7 위치 갱신 주기 실험과 그대로 연결됨
 import http from 'k6/http';
-import encoding from 'k6/encoding';
 import { sleep } from 'k6';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const AUTH_USER = __ENV.AUTH_USER || 'user';
-const AUTH_PASSWORD = __ENV.AUTH_PASSWORD;
 const INTERVAL_SECONDS = Number(__ENV.INTERVAL_SECONDS) || 5;
 
 const ORIGIN_LNG = 126.9707;
@@ -22,12 +19,6 @@ export const options = {
 	vus: Number(__ENV.DRIVER_COUNT) || 20,
 	duration: __ENV.DURATION || '10m',
 };
-
-if (!AUTH_PASSWORD) {
-	throw new Error('AUTH_PASSWORD 환경변수가 필요하다 (bootRun 콘솔의 "Using generated security password" 값)');
-}
-
-const authHeader = `Basic ${encoding.b64encode(`${AUTH_USER}:${AUTH_PASSWORD}`)}`;
 
 // VU 초기화 시 한 번만 실행되고, 이후 반복(iteration) 사이에는 이 값이 그대로 유지된다.
 let lng = ORIGIN_LNG + (Math.random() - 0.5) * BOUND_DEGREES;
@@ -42,10 +33,7 @@ export default function () {
 	lat = clamp(lat + (Math.random() - 0.5) * STEP_DEGREES, ORIGIN_LAT, BOUND_DEGREES);
 
 	http.put(`${BASE_URL}/drivers/${__VU}/location`, JSON.stringify({ lng, lat }), {
-		headers: {
-			'Content-Type': 'application/json',
-			Authorization: authHeader,
-		},
+		headers: { 'Content-Type': 'application/json' },
 	});
 
 	sleep(INTERVAL_SECONDS);

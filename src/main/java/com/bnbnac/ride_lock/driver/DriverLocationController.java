@@ -1,5 +1,6 @@
 package com.bnbnac.ride_lock.driver;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,7 +20,7 @@ public class DriverLocationController {
 
 	@PutMapping("/{driverId}/location")
 	public ResponseEntity<Void> updateLocation(@PathVariable Long driverId,
-			@RequestBody LocationUpdateRequest request) {
+			@Valid @RequestBody LocationUpdateRequest request) {
 		locationUpdateService.reportLocation(driverId, request.lng(), request.lat());
 		return ResponseEntity.noContent().build();
 	}
