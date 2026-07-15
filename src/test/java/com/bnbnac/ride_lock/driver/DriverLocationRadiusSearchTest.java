@@ -2,10 +2,6 @@ package com.bnbnac.ride_lock.driver;
 
 import com.bnbnac.ride_lock.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 class DriverLocationRadiusSearchTest extends AbstractIntegrationTest {
 
-	private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 	private static final double ORIGIN_LNG = 126.9707;
 	private static final double ORIGIN_LAT = 37.5547;
 
@@ -50,9 +45,8 @@ class DriverLocationRadiusSearchTest extends AbstractIntegrationTest {
 	}
 
 	private void saveDriver(Long driverId, String status, double lng, double lat) {
-		Point point = GEOMETRY_FACTORY.createPoint(new Coordinate(lng, lat));
 		driverStatusRepository.save(new DriverStatus(driverId, status, 0L, OffsetDateTime.now()));
-		driverLocationRepository.save(new DriverLocation(driverId, point, OffsetDateTime.now()));
+		driverLocationRepository.upsertLocation(driverId, lng, lat);
 	}
 
 }

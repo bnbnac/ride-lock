@@ -16,7 +16,9 @@ public class DriverLocation {
 	@Column(name = "driver_id")
 	private Long driverId;
 
-	@Column(name = "location", columnDefinition = "geography(Point,4326)", nullable = false)
+	// EPSG:5179(한국 투영좌표계, 미터) 좌표다. WGS84 위경도가 아니다 - 위경도는
+	// DriverLocationRepository.upsertLocation()에서 쓰기 시점에 ST_Transform으로 변환된다.
+	@Column(name = "location", columnDefinition = "geometry(Point,5179)", nullable = false)
 	private Point location;
 
 	@Column(name = "updated_at", nullable = false)

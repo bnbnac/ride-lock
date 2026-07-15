@@ -1,15 +1,11 @@
 package com.bnbnac.ride_lock.matching;
 
 import com.bnbnac.ride_lock.AbstractIntegrationTest;
-import com.bnbnac.ride_lock.driver.DriverLocation;
 import com.bnbnac.ride_lock.driver.DriverLocationRepository;
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -37,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class MatchingRaceConditionTest extends AbstractIntegrationTest {
 
-	private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
 	private static final double ORIGIN_LNG = 126.9707;
 	private static final double ORIGIN_LAT = 37.5547;
 	private static final long DRIVER_ID = 999L;
@@ -62,8 +57,7 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 	@Test
 	void unlockedMatchingLetsMultipleRequestsWinTheSameDriver() throws Exception {
 		driverStatusRepository.save(new DriverStatus(DRIVER_ID, "IDLE", 0L, OffsetDateTime.now()));
-		driverLocationRepository.save(new DriverLocation(DRIVER_ID,
-				GEOMETRY_FACTORY.createPoint(new Coordinate(ORIGIN_LNG, ORIGIN_LAT)), OffsetDateTime.now()));
+		driverLocationRepository.upsertLocation(DRIVER_ID, ORIGIN_LNG, ORIGIN_LAT);
 
 		int winners = 0;
 		for (int round = 0; round < MAX_ROUNDS && winners <= 1; round++) {
