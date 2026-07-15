@@ -43,5 +43,17 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'planner-experiment'
+	}
+}
+
+tasks.register('explainAnalyze', Test) {
+	description = 'PostgreSQL 쿼리 플래너 행동을 실측하는 실험성 테스트 (기본 test 태스크에서 제외됨)'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'planner-experiment'
+	}
 }
