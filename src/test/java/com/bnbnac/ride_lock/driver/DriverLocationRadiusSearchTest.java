@@ -27,13 +27,13 @@ class DriverLocationRadiusSearchTest extends AbstractIntegrationTest {
 	@Test
 	void returnsOnlyIdleDriversWithinRadiusOrderedByDistance() {
 		// 반경 5km 이내, IDLE -> 후보에 포함
-		saveDriver(1L, "IDLE", ORIGIN_LNG + 0.001, ORIGIN_LAT);
+		saveDriver(1L, DriverState.IDLE, ORIGIN_LNG + 0.001, ORIGIN_LAT);
 		// 반경 5km 이내지만 ASSIGNED -> 상태 필터로 제외
-		saveDriver(2L, "ASSIGNED", ORIGIN_LNG + 0.002, ORIGIN_LAT);
+		saveDriver(2L, DriverState.ASSIGNED, ORIGIN_LNG + 0.002, ORIGIN_LAT);
 		// 반경 5km 밖, IDLE -> 거리 필터로 제외
-		saveDriver(3L, "IDLE", ORIGIN_LNG, ORIGIN_LAT + 0.1);
+		saveDriver(3L, DriverState.IDLE, ORIGIN_LNG, ORIGIN_LAT + 0.1);
 		// 반경 5km 이내, IDLE, 1번보다 멀리 -> 후보에 포함, 순서상 뒤
-		saveDriver(4L, "IDLE", ORIGIN_LNG + 0.02, ORIGIN_LAT);
+		saveDriver(4L, DriverState.IDLE, ORIGIN_LNG + 0.02, ORIGIN_LAT);
 
 		List<NearbyDriver> result = driverLocationRepository.findIdleDriversNear(
 				ORIGIN_LNG, ORIGIN_LAT, 5000, 20);
@@ -44,7 +44,7 @@ class DriverLocationRadiusSearchTest extends AbstractIntegrationTest {
 				.isLessThan(result.get(1).getDistanceMeters());
 	}
 
-	private void saveDriver(Long driverId, String status, double lng, double lat) {
+	private void saveDriver(Long driverId, DriverState status, double lng, double lat) {
 		driverStatusRepository.save(new DriverStatus(driverId, status, 0L, OffsetDateTime.now()));
 		driverLocationRepository.upsertLocation(driverId, lng, lat);
 	}

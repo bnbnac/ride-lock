@@ -2,6 +2,7 @@ package com.bnbnac.ride_lock.matching;
 
 import com.bnbnac.ride_lock.AbstractIntegrationTest;
 import com.bnbnac.ride_lock.driver.DriverLocationRepository;
+import com.bnbnac.ride_lock.driver.DriverState;
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -56,7 +57,7 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 
 	@Test
 	void unlockedMatchingLetsMultipleRequestsWinTheSameDriver() throws Exception {
-		driverStatusRepository.save(new DriverStatus(DRIVER_ID, "IDLE", 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(new DriverStatus(DRIVER_ID, DriverState.IDLE, 0L, OffsetDateTime.now()));
 		driverLocationRepository.upsertLocation(DRIVER_ID, ORIGIN_LNG, ORIGIN_LAT);
 
 		int winners = 0;
@@ -71,9 +72,7 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 	}
 
 	private void resetDriverToIdle() {
-		DriverStatus status = driverStatusRepository.findById(DRIVER_ID).orElseThrow();
-		status.setStatus("IDLE");
-		driverStatusRepository.save(status);
+		driverStatusRepository.save(new DriverStatus(DRIVER_ID, DriverState.IDLE, 0L, OffsetDateTime.now()));
 	}
 
 	private int runConcurrentMatchAttempts() throws InterruptedException, ExecutionException, TimeoutException {

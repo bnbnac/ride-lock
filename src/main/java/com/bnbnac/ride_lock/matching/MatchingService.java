@@ -16,8 +16,6 @@ public class MatchingService {
 
 	private static final double DEFAULT_RADIUS_METERS = 5000;
 	private static final int DEFAULT_CANDIDATE_LIMIT = 20;
-	private static final String IDLE = "IDLE";
-	private static final String ASSIGNED = "ASSIGNED";
 
 	private final DriverLocationRepository driverLocationRepository;
 	private final DriverStatusRepository driverStatusRepository;
@@ -43,10 +41,9 @@ public class MatchingService {
 
 	private boolean tryAssign(Long driverId) {
 		DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
-		if (!IDLE.equals(status.getStatus())) {
+		if (!status.assign()) {
 			return false;
 		}
-		status.setStatus(ASSIGNED);
 		driverStatusRepository.save(status);
 		return true;
 	}

@@ -2,6 +2,8 @@ package com.bnbnac.ride_lock.driver;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -15,8 +17,9 @@ public class DriverStatus {
 	@Column(name = "driver_id")
 	private Long driverId;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "status", nullable = false)
-	private String status;
+	private DriverState status;
 
 	@Column(name = "version", nullable = false)
 	private Long version;
@@ -27,7 +30,7 @@ public class DriverStatus {
 	protected DriverStatus() {
 	}
 
-	public DriverStatus(Long driverId, String status, Long version, OffsetDateTime updatedAt) {
+	public DriverStatus(Long driverId, DriverState status, Long version, OffsetDateTime updatedAt) {
 		this.driverId = driverId;
 		this.status = status;
 		this.version = version;
@@ -38,7 +41,7 @@ public class DriverStatus {
 		return driverId;
 	}
 
-	public String getStatus() {
+	public DriverState getStatus() {
 		return status;
 	}
 
@@ -50,7 +53,13 @@ public class DriverStatus {
 		return updatedAt;
 	}
 
-	public void setStatus(String status) {
-		this.status = status;
+	// IDLE일 때만 ASSIGNED로 전이시키고 성공 여부를 돌려준다 - 상태 전이 규칙을 엔티티가
+	// 직접 지켜서, 호출부가 임의 문자열로 상태를 덮어쓸 수 없게 한다.
+	public boolean assign() {
+		if (status != DriverState.IDLE) {
+			return false;
+		}
+		status = DriverState.ASSIGNED;
+		return true;
 	}
 }
