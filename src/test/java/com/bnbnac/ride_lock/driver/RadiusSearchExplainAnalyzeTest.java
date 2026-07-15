@@ -18,6 +18,8 @@ class RadiusSearchExplainAnalyzeTest extends AbstractIntegrationTest {
 
 	private static final int DRIVER_COUNT = 50_000;
 
+	private static final String SPATIAL_INDEX = "idx_driver_location_gist";
+
 	private static final String RADIUS_ONLY_QUERY = """
 			EXPLAIN ANALYZE
 			SELECT driver_id
@@ -50,16 +52,27 @@ class RadiusSearchExplainAnalyzeTest extends AbstractIntegrationTest {
 		System.out.println("=== driver_location 반경 검색, GiST 인덱스 있음 ===\n" + withIndex);
 		assertThat(withIndex).contains("Index Scan");
 
+		// §3.4 옵티마이저 함정 가설(인덱스가 있어도 조인이 회피할 수 있다)은 인덱스가
+		// 살아있는 시점에 직접 실행해야 검증할 수 있다. 실측 결과: 반증됨 — GiST 인덱스를
+		// 그대로 사용한다(Bitmap Index Scan on idx_driver_location_gist).
+		String joinWithIndex = explain(JOIN_QUERY);
+		System.out.println("=== 조인 쿼리(status+반경), GiST 인덱스 있음 ===\n" + joinWithIndex);
+		assertThat(joinWithIndex).contains(SPATIAL_INDEX);
+
 		dropSpatialIndex();
 
 		String withoutIndex = explain(RADIUS_ONLY_QUERY);
 		System.out.println("=== driver_location 반경 검색, GiST 인덱스 없음 ===\n" + withoutIndex);
 		assertThat(withoutIndex).contains("Seq Scan");
 
-		// status 필터(§3.4 옵티마이저 함정) 포함 조인 쿼리는 플랜이 통계에 따라 달라질 수 있어
-		// 특정 노드를 강제로 assert하지 않고 실측 결과만 남긴다.
-		String joinPlanWithoutSpatialIndex = explain(JOIN_QUERY);
-		System.out.println("=== 조인 쿼리(status+반경), GiST 인덱스 없음 ===\n" + joinPlanWithoutSpatialIndex);
+		// 조인 쿼리는 GiST 인덱스가 없어도 Seq Scan으로 떨어지지 않는다. driver_status.status
+		// 필터(IDLE 약 50%)의 선택도가 충분히 높아, 옵티마이저가 driver_status를 먼저 필터링한 뒤
+		// driver_location을 PK(driver_location_pkey)로 Nested Loop 조인하는 경로로 자연스럽게
+		// 우회하기 때문이다 — 진짜 "함정"은 인덱스 회피가 아니라 이 대안 경로의 존재였다.
+		String joinWithoutIndex = explain(JOIN_QUERY);
+		System.out.println("=== 조인 쿼리(status+반경), GiST 인덱스 없음 ===\n" + joinWithoutIndex);
+		assertThat(joinWithoutIndex).doesNotContain("Seq Scan");
+		assertThat(joinWithoutIndex).contains("driver_location_pkey");
 	}
 
 	private void seedDrivers() {
@@ -80,7 +93,7 @@ class RadiusSearchExplainAnalyzeTest extends AbstractIntegrationTest {
 	}
 
 	private void dropSpatialIndex() {
-		entityManager.createNativeQuery("DROP INDEX idx_driver_location_gist").executeUpdate();
+		entityManager.createNativeQuery("DROP INDEX " + SPATIAL_INDEX).executeUpdate();
 	}
 
 	@SuppressWarnings("unchecked")
