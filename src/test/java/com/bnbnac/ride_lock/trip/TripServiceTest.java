@@ -69,6 +69,16 @@ class TripServiceTest extends AbstractIntegrationTest {
 	}
 
 	@Test
+	void expireThrowsWhenDriverAlreadyLeftAssigned() {
+		seedDriverStatus(DriverState.ON_TRIP);
+		OffsetDateTime now = OffsetDateTime.now();
+		Trip trip = tripRepository.save(Trip.of(1L, TripStatus.ASSIGNED, now));
+
+		assertThatThrownBy(() -> tripService.expire(trip.getId()))
+				.isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
 	void expireOnNonAssignedTripDoesNothing() {
 		seedDriverStatus(DriverState.ON_TRIP);
 		OffsetDateTime now = OffsetDateTime.now();

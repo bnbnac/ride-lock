@@ -31,9 +31,10 @@ public class TripService {
 		return tripRepository.save(Trip.of(driverId, TripStatus.ASSIGNED, now));
 	}
 
-	// 스케줄러가 조회한 시점과 처리 시점 사이에 이미 다른 경로로 상태가 바뀌었으면 조용히 스킵한다 -
-	// Trip.expire()/DriverStatus.release() 둘 다 자기 상태를 스스로 확인하고 실패 시 false를
-	// 돌려주므로 예외를 던지지 않는다.
+	// Trip이 이미 다른 경로로 ASSIGNED를 벗어났으면(트립 자신의 레이스) 조용히 스킵한다.
+	// 하지만 Trip을 CANCELLED로 넘긴 이상 DriverStatus도 반드시 함께 풀려야 하므로,
+	// release()가 실패하면 Trip과 DriverStatus가 불일치한 상태라는 뜻으로 보고 예외를 던져
+	// 트랜잭션을 롤백시킨다 - 다음 스케줄러 사이클에서 다시 시도된다.
 	@Transactional
 	public void expire(Long tripId) {
 		OffsetDateTime now = OffsetDateTime.now();
@@ -44,9 +45,10 @@ public class TripService {
 		tripRepository.save(trip);
 
 		DriverStatus status = driverStatusRepository.findById(trip.getDriverId()).orElseThrow();
-		if (status.release(now)) {
-			driverStatusRepository.save(status);
+		if (!status.release(now)) {
+			throw new IllegalStateException("driver " + trip.getDriverId() + " is not ASSIGNED");
 		}
+		driverStatusRepository.save(status);
 	}
 
 }
