@@ -55,11 +55,12 @@ public class DriverStatus {
 
 	// IDLE일 때만 ASSIGNED로 전이시키고 성공 여부를 돌려준다 - 상태 전이 규칙을 엔티티가
 	// 직접 지켜서, 호출부가 임의 문자열로 상태를 덮어쓸 수 없게 한다.
-	public boolean assign() {
+	public boolean assign(OffsetDateTime now) {
 		if (status != DriverState.IDLE) {
 			return false;
 		}
 		status = DriverState.ASSIGNED;
+		updatedAt = now;
 		return true;
 	}
 }

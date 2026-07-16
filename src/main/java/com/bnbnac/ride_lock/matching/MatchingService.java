@@ -7,6 +7,7 @@ import com.bnbnac.ride_lock.driver.NearbyDriver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 // 락 없는 "before" 베이스라인. 조회-배정 사이 검증이 없어 동시 요청 시 같은 기사가
@@ -41,7 +42,7 @@ public class MatchingService {
 
 	private boolean tryAssign(Long driverId) {
 		DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
-		if (!status.assign()) {
+		if (!status.assign(OffsetDateTime.now())) {
 			return false;
 		}
 		driverStatusRepository.save(status);

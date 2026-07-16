@@ -64,11 +64,12 @@ public class Trip {
 
 	// ASSIGNED일 때만 CANCELLED로 전이시키고 성공 여부를 돌려준다 - 스케줄러가 조회한 시점과
 	// 실제 갱신 시점 사이에 이미 다른 경로로 상태가 바뀌었을 가능성을 엔티티가 직접 막는다.
-	public boolean expire() {
+	public boolean expire(OffsetDateTime now) {
 		if (status != TripStatus.ASSIGNED) {
 			return false;
 		}
 		status = TripStatus.CANCELLED;
+		updatedAt = now;
 		return true;
 	}
 
