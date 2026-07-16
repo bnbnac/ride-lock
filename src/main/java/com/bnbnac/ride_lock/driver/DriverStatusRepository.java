@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 public interface DriverStatusRepository extends JpaRepository<DriverStatus, Long> {
 
 	// 위치 보고 시 기사가 driver_status에 없으면 IDLE로 등록한다. 이미 있으면(ASSIGNED/ON_TRIP 포함)
@@ -18,4 +20,15 @@ public interface DriverStatusRepository extends JpaRepository<DriverStatus, Long
 			ON CONFLICT (driver_id) DO NOTHING
 			""", nativeQuery = true)
 	void insertIdleIfAbsent(@Param("driverId") Long driverId);
+
+	@Query(value = "SELECT * FROM driver_status WHERE driver_id = :driverId FOR UPDATE", nativeQuery = true)
+	Optional<DriverStatus> findByIdForUpdate(@Param("driverId") Long driverId);
+
+	@Transactional
+	@Modifying(clearAutomatically = true)
+	@Query(value = """
+			UPDATE driver_status SET status = 'ASSIGNED', version = version + 1
+			WHERE driver_id = :driverId AND status = 'IDLE'
+			""", nativeQuery = true)
+	int compareAndSetAssigned(@Param("driverId") Long driverId);
 }
