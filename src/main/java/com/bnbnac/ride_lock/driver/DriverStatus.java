@@ -63,4 +63,15 @@ public class DriverStatus {
 		updatedAt = now;
 		return true;
 	}
+
+	// ASSIGNED일 때만 IDLE로 되돌리고 성공 여부를 돌려준다 - 이미 ON_TRIP으로 넘어간 기사를
+	// 타임아웃 스케줄러가 실수로 IDLE로 되돌리지 않도록 막는다.
+	public boolean release(OffsetDateTime now) {
+		if (status != DriverState.ASSIGNED) {
+			return false;
+		}
+		status = DriverState.IDLE;
+		updatedAt = now;
+		return true;
+	}
 }
