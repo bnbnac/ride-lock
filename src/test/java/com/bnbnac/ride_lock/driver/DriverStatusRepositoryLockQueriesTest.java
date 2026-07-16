@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -27,13 +29,15 @@ class DriverStatusRepositoryLockQueriesTest extends AbstractIntegrationTest {
 
 	@Test
 	void compareAndSetAssignedSucceedsOnlyWhenIdle() {
-		driverStatusRepository.save(DriverStatus.of(1L, DriverState.IDLE));
+		DriverStatus saved = driverStatusRepository.save(DriverStatus.of(1L, DriverState.IDLE));
+		OffsetDateTime beforeUpdatedAt = saved.getUpdatedAt();
 
 		int updated = driverStatusRepository.compareAndSetAssigned(1L);
 
 		assertThat(updated).isEqualTo(1);
-		assertThat(driverStatusRepository.findById(1L)).get()
-				.extracting(DriverStatus::getStatus).isEqualTo(DriverState.ASSIGNED);
+		DriverStatus found = driverStatusRepository.findById(1L).orElseThrow();
+		assertThat(found.getStatus()).isEqualTo(DriverState.ASSIGNED);
+		assertThat(found.getUpdatedAt()).isAfter(beforeUpdatedAt);
 	}
 
 	@Test
