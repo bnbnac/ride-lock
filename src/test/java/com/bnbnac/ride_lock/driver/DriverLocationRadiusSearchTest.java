@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +44,7 @@ class DriverLocationRadiusSearchTest extends AbstractIntegrationTest {
 	}
 
 	private void saveDriver(Long driverId, DriverState status, double lng, double lat) {
-		driverStatusRepository.save(new DriverStatus(driverId, status, 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(DriverStatus.of(driverId, status));
 		driverLocationRepository.upsertLocation(driverId, lng, lat);
 	}
 

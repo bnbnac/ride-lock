@@ -13,7 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.sql.DataSource;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -76,7 +75,7 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 
 	@Test
 	void unlockedMatchingLetsMultipleRequestsWinTheSameDriver() throws Exception {
-		driverStatusRepository.save(new DriverStatus(DRIVER_ID, DriverState.IDLE, 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(DriverStatus.of(DRIVER_ID, DriverState.IDLE));
 		driverLocationRepository.upsertLocation(DRIVER_ID, ORIGIN_LNG, ORIGIN_LAT);
 
 		int winners = 0;
@@ -91,7 +90,7 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 	}
 
 	private void resetDriverToIdle() {
-		driverStatusRepository.save(new DriverStatus(DRIVER_ID, DriverState.IDLE, 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(DriverStatus.of(DRIVER_ID, DriverState.IDLE));
 	}
 
 	private int runConcurrentMatchAttempts() throws InterruptedException, ExecutionException, TimeoutException {

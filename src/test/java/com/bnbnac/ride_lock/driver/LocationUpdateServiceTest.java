@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,7 +40,7 @@ class LocationUpdateServiceTest extends AbstractIntegrationTest {
 
 	@Test
 	void reportingLocationForAssignedDriverDoesNotResetStatusToIdle() {
-		driverStatusRepository.save(new DriverStatus(2L, DriverState.ASSIGNED, 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(DriverStatus.of(2L, DriverState.ASSIGNED));
 
 		locationUpdateService.reportLocation(2L, LNG, LAT);
 

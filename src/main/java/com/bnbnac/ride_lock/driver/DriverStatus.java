@@ -30,11 +30,17 @@ public class DriverStatus {
 	protected DriverStatus() {
 	}
 
-	public DriverStatus(Long driverId, DriverState status, Long version, OffsetDateTime updatedAt) {
+	private DriverStatus(Long driverId, DriverState status, Long version, OffsetDateTime updatedAt) {
 		this.driverId = driverId;
 		this.status = status;
 		this.version = version;
 		this.updatedAt = updatedAt;
+	}
+
+	// version/updatedAt은 항상 생성 시점 기본값(0, now)으로 시작하므로, 호출부가 매번
+	// 그대로 나열하지 않도록 driverId/status만 받는다.
+	public static DriverStatus of(Long driverId, DriverState status) {
+		return new DriverStatus(driverId, status, 0L, OffsetDateTime.now());
 	}
 
 	public Long getDriverId() {

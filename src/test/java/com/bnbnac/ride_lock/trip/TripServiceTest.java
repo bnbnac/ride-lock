@@ -83,7 +83,7 @@ class TripServiceTest extends AbstractIntegrationTest {
 	}
 
 	private void seedDriverStatus(DriverState state) {
-		driverStatusRepository.save(new DriverStatus(1L, state, 0L, OffsetDateTime.now()));
+		driverStatusRepository.save(DriverStatus.of(1L, state));
 	}
 
 }
