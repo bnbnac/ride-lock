@@ -29,8 +29,8 @@ class TripServiceTest extends AbstractIntegrationTest {
 	private DriverStatusRepository driverStatusRepository;
 
 	@Test
-	void createTripPersistsAssignedTripAndAssignsDriver() {
-		seedDriverStatus(DriverState.IDLE);
+	void createTripPersistsAssignedTripWhenDriverIsAssigned() {
+		seedDriverStatus(DriverState.ASSIGNED);
 
 		Trip trip = tripService.createTrip(1L);
 
@@ -42,8 +42,8 @@ class TripServiceTest extends AbstractIntegrationTest {
 	}
 
 	@Test
-	void createTripThrowsWhenDriverIsNotIdle() {
-		seedDriverStatus(DriverState.ASSIGNED);
+	void createTripThrowsWhenDriverIsNotAssigned() {
+		seedDriverStatus(DriverState.IDLE);
 
 		assertThatThrownBy(() -> tripService.createTrip(1L))
 				.isInstanceOf(IllegalStateException.class);
@@ -57,7 +57,7 @@ class TripServiceTest extends AbstractIntegrationTest {
 
 	@Test
 	void expireRevertsAssignedTripAndDriverToCancelledAndIdle() {
-		seedDriverStatus(DriverState.IDLE);
+		seedDriverStatus(DriverState.ASSIGNED);
 		Trip trip = tripService.createTrip(1L);
 
 		tripService.expire(trip.getId());

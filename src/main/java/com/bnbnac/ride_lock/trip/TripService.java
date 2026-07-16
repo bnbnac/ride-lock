@@ -1,5 +1,6 @@
 package com.bnbnac.ride_lock.trip;
 
+import com.bnbnac.ride_lock.driver.DriverState;
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
 import org.springframework.stereotype.Service;
@@ -18,16 +19,16 @@ public class TripService {
 		this.driverStatusRepository = driverStatusRepository;
 	}
 
-	// Trip은 "배차가 성사된 상황"만 표현하므로, DriverStatus를 ASSIGNED로 전이시키는 데
-	// 성공했을 때만 Trip을 생성한다.
+	// driver를 IDLE→ASSIGNED로 전이시키는 책임은 DriverLockStrategy.tryAssign()에 있다 -
+	// 동시성 제어가 필요한 그 전이를 여기서 다시 시도하면 이미 ASSIGNED인 상태라 항상 실패한다.
+	// 대신 그 결과가 실제로 반영됐는지만 읽어서 확인한다.
 	@Transactional
 	public Trip createTrip(Long driverId) {
 		DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
-		OffsetDateTime now = OffsetDateTime.now();
-		if (!status.assign(now)) {
-			throw new IllegalStateException("driver " + driverId + " is not IDLE");
+		if (status.getStatus() != DriverState.ASSIGNED) {
+			throw new IllegalStateException("driver " + driverId + " is not ASSIGNED");
 		}
-		driverStatusRepository.save(status);
+		OffsetDateTime now = OffsetDateTime.now();
 		return tripRepository.save(Trip.of(driverId, TripStatus.ASSIGNED, now));
 	}
 
