@@ -56,21 +56,20 @@ public class DriverStatus {
 	// IDLE일 때만 ASSIGNED로 전이시키고 성공 여부를 돌려준다 - 상태 전이 규칙을 엔티티가
 	// 직접 지켜서, 호출부가 임의 문자열로 상태를 덮어쓸 수 없게 한다.
 	public boolean assign(OffsetDateTime now) {
-		if (status != DriverState.IDLE) {
-			return false;
-		}
-		status = DriverState.ASSIGNED;
-		updatedAt = now;
-		return true;
+		return transition(DriverState.IDLE, DriverState.ASSIGNED, now);
 	}
 
 	// ASSIGNED일 때만 IDLE로 되돌리고 성공 여부를 돌려준다 - 이미 ON_TRIP으로 넘어간 기사를
 	// 타임아웃 스케줄러가 실수로 IDLE로 되돌리지 않도록 막는다.
 	public boolean release(OffsetDateTime now) {
-		if (status != DriverState.ASSIGNED) {
+		return transition(DriverState.ASSIGNED, DriverState.IDLE, now);
+	}
+
+	private boolean transition(DriverState from, DriverState to, OffsetDateTime now) {
+		if (status != from) {
 			return false;
 		}
-		status = DriverState.IDLE;
+		status = to;
 		updatedAt = now;
 		return true;
 	}
