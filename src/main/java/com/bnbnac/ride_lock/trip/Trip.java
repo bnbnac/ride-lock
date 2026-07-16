@@ -35,11 +35,17 @@ public class Trip {
 	protected Trip() {
 	}
 
-	public Trip(Long driverId, TripStatus status, OffsetDateTime assignedAt, OffsetDateTime updatedAt) {
+	private Trip(Long driverId, TripStatus status, OffsetDateTime assignedAt, OffsetDateTime updatedAt) {
 		this.driverId = driverId;
 		this.status = status;
 		this.assignedAt = assignedAt;
 		this.updatedAt = updatedAt;
+	}
+
+	// assignedAt/updatedAt이 항상 같은 시각으로 함께 생성되므로, 호출부가 같은 값을
+	// 두 번 넘기다 순서를 헷갈리지 않도록 하나로 합친다.
+	public static Trip of(Long driverId, TripStatus status, OffsetDateTime at) {
+		return new Trip(driverId, status, at, at);
 	}
 
 	public Long getId() {

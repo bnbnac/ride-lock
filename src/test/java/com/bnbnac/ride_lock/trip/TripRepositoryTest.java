@@ -20,7 +20,7 @@ class TripRepositoryTest extends AbstractIntegrationTest {
 
 	@Test
 	void savesAndLoadsTrip() {
-		Trip saved = tripRepository.save(new Trip(1L, TripStatus.ASSIGNED, OffsetDateTime.now(), OffsetDateTime.now()));
+		Trip saved = tripRepository.save(Trip.of(1L, TripStatus.ASSIGNED, OffsetDateTime.now()));
 
 		Trip found = tripRepository.findById(saved.getId()).orElseThrow();
 		assertThat(found.getDriverId()).isEqualTo(1L);
@@ -31,8 +31,8 @@ class TripRepositoryTest extends AbstractIntegrationTest {
 	void findsAssignedTripsOlderThanCutoff() {
 		OffsetDateTime past = OffsetDateTime.now().minusSeconds(60);
 		OffsetDateTime recent = OffsetDateTime.now();
-		Trip old = tripRepository.save(new Trip(1L, TripStatus.ASSIGNED, past, past));
-		tripRepository.save(new Trip(2L, TripStatus.ASSIGNED, recent, recent));
+		Trip old = tripRepository.save(Trip.of(1L, TripStatus.ASSIGNED, past));
+		tripRepository.save(Trip.of(2L, TripStatus.ASSIGNED, recent));
 
 		List<Trip> expired = tripRepository.findByStatusAndAssignedAtBefore(
 				TripStatus.ASSIGNED, OffsetDateTime.now().minusSeconds(30));

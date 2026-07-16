@@ -18,10 +18,17 @@ public class TripService {
 		this.driverStatusRepository = driverStatusRepository;
 	}
 
+	// Trip은 "배차가 성사된 상황"만 표현하므로, DriverStatus를 ASSIGNED로 전이시키는 데
+	// 성공했을 때만 Trip을 생성한다.
 	@Transactional
 	public Trip createTrip(Long driverId) {
+		DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
 		OffsetDateTime now = OffsetDateTime.now();
-		return tripRepository.save(new Trip(driverId, TripStatus.ASSIGNED, now, now));
+		if (!status.assign(now)) {
+			throw new IllegalStateException("driver " + driverId + " is not IDLE");
+		}
+		driverStatusRepository.save(status);
+		return tripRepository.save(Trip.of(driverId, TripStatus.ASSIGNED, now));
 	}
 
 	// 스케줄러가 조회한 시점과 처리 시점 사이에 이미 다른 경로로 상태가 바뀌었으면 조용히 스킵한다 -
