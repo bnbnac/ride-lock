@@ -9,4 +9,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 
 	List<Trip> findByStatusAndAssignedAtBefore(TripStatus status, OffsetDateTime cutoff);
 
+	List<Trip> findByDriverId(Long driverId);
+
 }

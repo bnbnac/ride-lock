@@ -5,6 +5,7 @@ import com.bnbnac.ride_lock.driver.DriverLocationRepository;
 import com.bnbnac.ride_lock.driver.DriverState;
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
+import com.bnbnac.ride_lock.trip.TripRepository;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -62,10 +63,16 @@ class MatchingRaceConditionTest extends AbstractIntegrationTest {
 	private DriverLocationRepository driverLocationRepository;
 
 	@Autowired
+	private TripRepository tripRepository;
+
+	@Autowired
 	private DataSource dataSource;
 
 	@AfterEach
 	void cleanUp() {
+		// match() 성공마다 Trip이 하나씩 생기므로(여러 라운드 반복 시 기사 하나당 여러 건) 남겨두면
+		// 다음 실행의 테스트 DB에 계속 쌓인다.
+		tripRepository.deleteAll(tripRepository.findByDriverId(DRIVER_ID));
 		driverLocationRepository.deleteById(DRIVER_ID);
 		driverStatusRepository.deleteById(DRIVER_ID);
 	}
