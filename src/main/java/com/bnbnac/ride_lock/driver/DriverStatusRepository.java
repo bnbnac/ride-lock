@@ -29,11 +29,16 @@ public interface DriverStatusRepository extends JpaRepository<DriverStatus, Long
 	@Query(value = "SELECT * FROM driver_status WHERE driver_id = :driverId FOR UPDATE", nativeQuery = true)
 	Optional<DriverStatus> findByIdForUpdate(@Param("driverId") Long driverId);
 
+	// version까지 WHERE절에 넣어야 진짜 낙관적 락이다 - status만 비교하면 호출 사이에 버전이
+	// 바뀌었어도(예: 다른 트랜잭션이 IDLE로 되돌렸다가 다시 ASSIGNED한 경우) 감지하지 못한다.
+	// updated_at은 now()(트랜잭션 시작 시각 고정) 대신 clock_timestamp()(statement 실행 시각)를
+	// 쓴다 - 이 메서드를 감싸는 트랜잭션이 길게 이어지면 now()는 실제 갱신 시점보다 앞선
+	// 트랜잭션 시작 시각을 반환해 감사(audit) 목적에 안 맞는다.
 	@Transactional
 	@Modifying(clearAutomatically = true)
 	@Query(value = """
-			UPDATE driver_status SET status = 'ASSIGNED', version = version + 1, updated_at = now()
-			WHERE driver_id = :driverId AND status = 'IDLE'
+			UPDATE driver_status SET status = 'ASSIGNED', version = version + 1, updated_at = clock_timestamp()
+			WHERE driver_id = :driverId AND status = 'IDLE' AND version = :version
 			""", nativeQuery = true)
-	int compareAndSetAssigned(@Param("driverId") Long driverId);
+	int compareAndSetAssigned(@Param("driverId") Long driverId, @Param("version") Long version);
 }
