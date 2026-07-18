@@ -11,3 +11,5 @@ spring:
 
 matching:
   lock-strategy: none
+  assign-timeout-seconds: 30
+  timeout-check-interval-seconds: 10
