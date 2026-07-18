@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.sql.DataSource;
@@ -39,11 +40,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 // 커넥션을 짧게라도 물게 되는 순간(TransactionTemplate으로 감싼 후보별 트랜잭션)에 일부가 커넥션
 // 대기 큐에서 순차화돼 진짜 동시 경합이 줄어든다 - 이 테스트에서만 풀 크기를 CONCURRENT_REQUESTS
 // 이상으로 올려서 그 병목을 없앤다.
+// @DirtiesContext: 이 클래스만 pool을 50으로 올린 별도 컨텍스트를 쓴다 - 안 닫고 두면 이후 다른
+// 동시성 테스트(Pessimistic/Optimistic 등)의 오버사이즈 pool과 겹쳐 공유 Postgres 컨테이너의
+// max_connections를 넘겨버린다.
 @SpringBootTest
 @TestPropertySource(properties = {
 		"spring.datasource.hikari.maximum-pool-size=" + MatchingRaceConditionTest.CONCURRENT_REQUESTS,
 		"matching.lock-strategy=none"
 })
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class MatchingRaceConditionTest extends AbstractIntegrationTest {
 
 	static final int CONCURRENT_REQUESTS = 50;

@@ -4,7 +4,7 @@ import com.bnbnac.ride_lock.AbstractIntegrationTest;
 import com.bnbnac.ride_lock.driver.DriverState;
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
-import com.bnbnac.ride_lock.matching.lock.PessimisticLockStrategy;
+import com.bnbnac.ride_lock.matching.lock.OptimisticLockStrategy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,24 +23,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// PessimisticLockStrategy가 동시 요청 중 정확히 1명만 성공시키는지 확인 -
-// MatchingRaceConditionTest(락 없음, 여러 명 성공)와 반대 방향 단언.
 // @DirtiesContext: 이 클래스만 HikariCP pool을 50으로 올린 별도 컨텍스트를 쓴다 - 안 닫고
-// 두면 이후 다른 동시성 테스트(Optimistic 등)의 오버사이즈 pool과 겹쳐 공유 Postgres
+// 두면 이후 다른 동시성 테스트(Pessimistic 등)의 오버사이즈 pool과 겹쳐 공유 Postgres
 // 컨테이너의 max_connections를 넘겨버린다.
 @SpringBootTest
 @TestPropertySource(properties = {
-		"matching.lock-strategy=pessimistic",
-		"spring.datasource.hikari.maximum-pool-size=" + PessimisticLockConcurrencyTest.CONCURRENT_REQUESTS
+		"matching.lock-strategy=optimistic",
+		"spring.datasource.hikari.maximum-pool-size=" + OptimisticLockConcurrencyTest.CONCURRENT_REQUESTS
 })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-class PessimisticLockConcurrencyTest extends AbstractIntegrationTest {
+class OptimisticLockConcurrencyTest extends AbstractIntegrationTest {
 
 	static final int CONCURRENT_REQUESTS = 50;
 	private static final long DRIVER_ID = 999L;
 
 	@Autowired
-	private PessimisticLockStrategy pessimisticLockStrategy;
+	private OptimisticLockStrategy optimisticLockStrategy;
 
 	@Autowired
 	private DriverStatusRepository driverStatusRepository;
@@ -63,7 +61,7 @@ class PessimisticLockConcurrencyTest extends AbstractIntegrationTest {
 			futures.add(executor.submit(() -> {
 				try {
 					startLatch.await();
-					if (pessimisticLockStrategy.tryAssign(DRIVER_ID)) {
+					if (optimisticLockStrategy.tryAssign(DRIVER_ID)) {
 						successCount.incrementAndGet();
 					}
 				} catch (InterruptedException e) {
@@ -79,7 +77,7 @@ class PessimisticLockConcurrencyTest extends AbstractIntegrationTest {
 		executor.shutdown();
 
 		assertThat(successCount.get())
-				.as("비관적 락은 동시 요청 중 정확히 1명만 배정에 성공해야 한다")
+				.as("낙관적 락은 동시 요청 중 정확히 1명만 배정에 성공해야 한다")
 				.isEqualTo(1);
 	}
 

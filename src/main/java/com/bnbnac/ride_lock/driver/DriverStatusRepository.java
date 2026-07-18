@@ -34,6 +34,10 @@ public interface DriverStatusRepository extends JpaRepository<DriverStatus, Long
 	// updated_at은 now()(트랜잭션 시작 시각 고정) 대신 clock_timestamp()(statement 실행 시각)를
 	// 쓴다 - 이 메서드를 감싸는 트랜잭션이 길게 이어지면 now()는 실제 갱신 시점보다 앞선
 	// 트랜잭션 시작 시각을 반환해 감사(audit) 목적에 안 맞는다.
+	// IDLE→ASSIGNED 전이 규칙을 DriverStatus.assign()과 별개로 SQL 문자열로 다시 구현한
+	// 것이다 - 의도적 중복이다. 엔티티 필드에 @Version을 붙여 Hibernate가 관리하게 하면
+	// 다른 전략(none/pessimistic/redis)의 save()에도 낙관적 락 검증이 걸려 baseline 동작이
+	// 오염되기 때문에 피했다. 대신 DriverState 값이 바뀌면 이 리터럴도 같이 고쳐야 한다.
 	@Transactional
 	@Modifying(clearAutomatically = true)
 	@Query(value = """
