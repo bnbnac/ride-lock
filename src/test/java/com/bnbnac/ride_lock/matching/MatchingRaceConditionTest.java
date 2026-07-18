@@ -34,9 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 // 재현, 전체 스위트 뒤쪽에서 실행 시 1회차엔 미재현) 단발 시도에 의존하지 않고 여러 라운드 재시도해서
 // "적어도 한 번은 재현된다"를 검증한다. 프로덕션 코드에 인위적 지연은 넣지 않는다.
 //
-// HikariCP 기본 maximum-pool-size(10)보다 CONCURRENT_REQUESTS가 크면, match()가 @Transactional이라
-// 커넥션을 트랜잭션 내내 물고 있는 구조상 스레드 일부가 커넥션 대기 큐에서 순차화돼 진짜 동시 경합이
-// 줄어든다 - 이 테스트에서만 풀 크기를 CONCURRENT_REQUESTS 이상으로 올려서 그 병목을 없앤다.
+// HikariCP 기본 maximum-pool-size(10)보다 CONCURRENT_REQUESTS가 크면, 각 스레드가 match() 안에서
+// 커넥션을 짧게라도 물게 되는 순간(TransactionTemplate으로 감싼 후보별 트랜잭션)에 일부가 커넥션
+// 대기 큐에서 순차화돼 진짜 동시 경합이 줄어든다 - 이 테스트에서만 풀 크기를 CONCURRENT_REQUESTS
+// 이상으로 올려서 그 병목을 없앤다.
 @SpringBootTest
 @TestPropertySource(properties = {
 		"spring.datasource.hikari.maximum-pool-size=" + MatchingRaceConditionTest.CONCURRENT_REQUESTS,
