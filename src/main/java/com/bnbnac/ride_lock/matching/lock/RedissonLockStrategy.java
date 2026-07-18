@@ -26,6 +26,11 @@ import java.util.concurrent.TimeUnit;
 // 않는다. finally에서 바로 unlock()하면 DB 변경이 실제로 커밋되기도 전에 Redis 락이 풀려서,
 // 그 틈에 다른 스레드가 같은 driver를 findById()로 읽어 아직 안 보이는 옛 상태(IDLE)를 보고
 // 중복 배정할 수 있다. 그래서 실제 트랜잭션이 끝난 뒤(afterCompletion)에 풀리도록 등록한다.
+// 이 "미룰지" 판단은 안쪽 transactionTemplate.execute() 호출 "전에" 끝내둔다 - REQUIRED는
+// 이미 열려있는 바깥 트랜잭션에 합류만 할 뿐이라 isSynchronizationActive()는 호출 전/후로
+// 값이 같다. 판단을 호출 뒤로 미루면 그 호출이 예외를 던졌을 때 판단 자체가 건너뛰어져
+// unlockDeferred가 항상 false로 남고, 바깥 트랜잭션이 살아있는데도 즉시 unlock되는
+// 비대칭이 생긴다.
 @Component
 @ConditionalOnProperty(name = "matching.lock-strategy", havingValue = "redis")
 public class RedissonLockStrategy implements DriverLockStrategy {
@@ -65,14 +70,6 @@ public class RedissonLockStrategy implements DriverLockStrategy {
 		}
 		boolean unlockDeferred = false;
 		try {
-			boolean assigned = Boolean.TRUE.equals(transactionTemplate.execute(txStatus -> {
-				DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
-				if (!status.assign(OffsetDateTime.now())) {
-					return false;
-				}
-				driverStatusRepository.save(status);
-				return true;
-			}));
 			if (TransactionSynchronizationManager.isSynchronizationActive()) {
 				TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 					@Override
@@ -82,7 +79,14 @@ public class RedissonLockStrategy implements DriverLockStrategy {
 				});
 				unlockDeferred = true;
 			}
-			return assigned;
+			return Boolean.TRUE.equals(transactionTemplate.execute(txStatus -> {
+				DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
+				if (!status.assign(OffsetDateTime.now())) {
+					return false;
+				}
+				driverStatusRepository.save(status);
+				return true;
+			}));
 		} finally {
 			if (!unlockDeferred) {
 				safeUnlock(lock, driverId);
