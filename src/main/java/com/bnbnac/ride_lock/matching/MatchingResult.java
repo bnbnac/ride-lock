@@ -1,4 +1,4 @@
 package com.bnbnac.ride_lock.matching;
 
-public record MatchingResult(Long driverId, Double distanceMeters) {
+public record MatchingResult(Long tripId, Long driverId, Double distanceMeters) {
 }

@@ -38,7 +38,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 // 커넥션을 트랜잭션 내내 물고 있는 구조상 스레드 일부가 커넥션 대기 큐에서 순차화돼 진짜 동시 경합이
 // 줄어든다 - 이 테스트에서만 풀 크기를 CONCURRENT_REQUESTS 이상으로 올려서 그 병목을 없앤다.
 @SpringBootTest
-@TestPropertySource(properties = "spring.datasource.hikari.maximum-pool-size=" + MatchingRaceConditionTest.CONCURRENT_REQUESTS)
+@TestPropertySource(properties = {
+		"spring.datasource.hikari.maximum-pool-size=" + MatchingRaceConditionTest.CONCURRENT_REQUESTS,
+		"matching.lock-strategy=none"
+})
 class MatchingRaceConditionTest extends AbstractIntegrationTest {
 
 	static final int CONCURRENT_REQUESTS = 50;

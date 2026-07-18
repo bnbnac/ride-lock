@@ -1,17 +1,18 @@
 package com.bnbnac.ride_lock.matching;
 
 import com.bnbnac.ride_lock.driver.DriverLocationRepository;
-import com.bnbnac.ride_lock.driver.DriverStatus;
-import com.bnbnac.ride_lock.driver.DriverStatusRepository;
 import com.bnbnac.ride_lock.driver.NearbyDriver;
+import com.bnbnac.ride_lock.matching.lock.DriverLockStrategy;
+import com.bnbnac.ride_lock.trip.Trip;
+import com.bnbnac.ride_lock.trip.TripService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
-// 락 없는 "before" 베이스라인. 조회-배정 사이 검증이 없어 동시 요청 시 같은 기사가
-// 중복 배정될 수 있다 (§4.1) - 이후 비관적/낙관적/분산락 버전과 비교할 기준점으로 의도적으로 남겨둠.
+// match() 자체는 더 이상 @Transactional이 아니다 - 후보 1명당 락 획득~해제가
+// DriverLockStrategy.tryAssign() 내부에서 완결돼야 한다. 전체를 하나의 트랜잭션으로 감싸면
+// 비관적 락(FOR UPDATE)에서 실패한 후보의 row 락이 이 메서드가 리턴할 때까지 풀리지 않아
+// 락 경합 측정이 왜곡된다 (설계문서 §2).
 @Service
 public class MatchingService {
 
@@ -19,34 +20,27 @@ public class MatchingService {
 	private static final int DEFAULT_CANDIDATE_LIMIT = 20;
 
 	private final DriverLocationRepository driverLocationRepository;
-	private final DriverStatusRepository driverStatusRepository;
+	private final DriverLockStrategy lockStrategy;
+	private final TripService tripService;
 
 	public MatchingService(DriverLocationRepository driverLocationRepository,
-			DriverStatusRepository driverStatusRepository) {
+			DriverLockStrategy lockStrategy, TripService tripService) {
 		this.driverLocationRepository = driverLocationRepository;
-		this.driverStatusRepository = driverStatusRepository;
+		this.lockStrategy = lockStrategy;
+		this.tripService = tripService;
 	}
 
-	@Transactional
 	public MatchingResult match(double lng, double lat) {
 		List<NearbyDriver> candidates = driverLocationRepository.findIdleDriversNear(
 				lng, lat, DEFAULT_RADIUS_METERS, DEFAULT_CANDIDATE_LIMIT);
 
 		for (NearbyDriver candidate : candidates) {
-			if (tryAssign(candidate.getDriverId())) {
-				return new MatchingResult(candidate.getDriverId(), candidate.getDistanceMeters());
+			if (lockStrategy.tryAssign(candidate.getDriverId())) {
+				Trip trip = tripService.createTrip(candidate.getDriverId());
+				return new MatchingResult(trip.getId(), candidate.getDriverId(), candidate.getDistanceMeters());
 			}
 		}
 		throw new NoAvailableDriverException();
-	}
-
-	private boolean tryAssign(Long driverId) {
-		DriverStatus status = driverStatusRepository.findById(driverId).orElseThrow();
-		if (!status.assign(OffsetDateTime.now())) {
-			return false;
-		}
-		driverStatusRepository.save(status);
-		return true;
 	}
 
 }
