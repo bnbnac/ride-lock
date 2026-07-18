@@ -5,6 +5,14 @@ spring:
     url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # 기본값(10)은 Spring Boot 내장 기본값과 동일하게 유지한다 - 테스트 스위트가 여러
+      # SpringBootTest 컨텍스트를 캐싱해두고 하나의 Testcontainers Postgres를 공유하므로,
+      # 여기서 기본값 자체를 올리면 그 컨텍스트 수만큼 곱해져 max_connections를 넘긴다
+      # (실제로 20으로 시도했다가 "too many clients already"로 재현됨). 대신 DB_POOL_SIZE
+      # 환경변수로 노출해둬서, 3주차 부하테스트에서 커넥션 풀이 락 방식 비교를 가리는 병목이
+      # 되지 않도록 실제 기동 시에만 재컴파일 없이 올릴 수 있게 한다.
+      maximum-pool-size: ${DB_POOL_SIZE:10}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -13,3 +21,6 @@ matching:
   lock-strategy: none
   assign-timeout-seconds: 30
   timeout-check-interval-seconds: 10
+  # 핫존 시나리오(승객 다수 vs 기사 소수)의 밀도를 재컴파일 없이 조정하기 위해 프로퍼티로 뺐다.
+  candidate-radius-meters: 5000
+  candidate-limit: 20

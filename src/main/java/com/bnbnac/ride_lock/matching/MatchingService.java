@@ -5,6 +5,7 @@ import com.bnbnac.ride_lock.driver.NearbyDriver;
 import com.bnbnac.ride_lock.matching.lock.DriverLockStrategy;
 import com.bnbnac.ride_lock.trip.Trip;
 import com.bnbnac.ride_lock.trip.TripService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -20,26 +21,29 @@ import java.util.List;
 @Service
 public class MatchingService {
 
-	private static final double DEFAULT_RADIUS_METERS = 5000;
-	private static final int DEFAULT_CANDIDATE_LIMIT = 20;
-
 	private final DriverLocationRepository driverLocationRepository;
 	private final DriverLockStrategy lockStrategy;
 	private final TripService tripService;
 	private final TransactionTemplate transactionTemplate;
+	private final double candidateRadiusMeters;
+	private final int candidateLimit;
 
 	public MatchingService(DriverLocationRepository driverLocationRepository,
 			DriverLockStrategy lockStrategy, TripService tripService,
-			PlatformTransactionManager transactionManager) {
+			PlatformTransactionManager transactionManager,
+			@Value("${matching.candidate-radius-meters:5000}") double candidateRadiusMeters,
+			@Value("${matching.candidate-limit:20}") int candidateLimit) {
 		this.driverLocationRepository = driverLocationRepository;
 		this.lockStrategy = lockStrategy;
 		this.tripService = tripService;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
+		this.candidateRadiusMeters = candidateRadiusMeters;
+		this.candidateLimit = candidateLimit;
 	}
 
 	public MatchingResult match(double lng, double lat) {
 		List<NearbyDriver> candidates = driverLocationRepository.findIdleDriversNear(
-				lng, lat, DEFAULT_RADIUS_METERS, DEFAULT_CANDIDATE_LIMIT);
+				lng, lat, candidateRadiusMeters, candidateLimit);
 
 		for (NearbyDriver candidate : candidates) {
 			MatchingResult result = transactionTemplate.execute(status -> tryAssignAndCreateTrip(candidate));
