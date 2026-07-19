@@ -43,3 +43,6 @@ out/
 
 ### Worktrees ###
 .worktrees/
+
+results/
+logs/
