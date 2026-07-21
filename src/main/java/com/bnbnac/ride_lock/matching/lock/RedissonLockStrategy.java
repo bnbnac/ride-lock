@@ -2,10 +2,12 @@ package com.bnbnac.ride_lock.matching.lock;
 
 import com.bnbnac.ride_lock.driver.DriverStatus;
 import com.bnbnac.ride_lock.driver.DriverStatusRepository;
+import com.bnbnac.ride_lock.matching.routing.RoutingClient;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -31,6 +33,11 @@ import java.util.concurrent.TimeUnit;
 // 값이 같다. 판단을 호출 뒤로 미루면 그 호출이 예외를 던졌을 때 판단 자체가 건너뛰어져
 // unlockDeferred가 항상 false로 남고, 바깥 트랜잭션이 살아있는데도 즉시 unlock되는
 // 비대칭이 생긴다.
+//
+// routingClient 호출 위치는 matching.routing-delay-inside-lock으로 전환한다(PessimisticLockStrategy와
+// 동일한 축). 다만 tryLock(0, SECONDS)이 대기 없이 즉시 실패하는 방식이라, inside-lock이어도
+// 경쟁자가 "기다리다 느려지는" 일은 없다 - 대신 그 시간만큼 락이 잠겨있는 창이 넓어져 그 사이
+// 도착하는 모든 시도가 즉시 거부당하는 비율이 늘어난다(비관적 락과는 다른 방식으로 대가를 치른다).
 @Component
 @ConditionalOnProperty(name = "matching.lock-strategy", havingValue = "redis")
 public class RedissonLockStrategy implements DriverLockStrategy {
@@ -42,16 +49,24 @@ public class RedissonLockStrategy implements DriverLockStrategy {
 	private final RedissonClient redissonClient;
 	private final TransactionTemplate transactionTemplate;
 	private final DriverStatusRepository driverStatusRepository;
+	private final RoutingClient routingClient;
+	private final boolean routingInsideLock;
 
 	public RedissonLockStrategy(RedissonClient redissonClient, PlatformTransactionManager transactionManager,
-			DriverStatusRepository driverStatusRepository) {
+			DriverStatusRepository driverStatusRepository, RoutingClient routingClient,
+			@Value("${matching.routing-delay-inside-lock:false}") boolean routingInsideLock) {
 		this.redissonClient = redissonClient;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.driverStatusRepository = driverStatusRepository;
+		this.routingClient = routingClient;
+		this.routingInsideLock = routingInsideLock;
 	}
 
 	@Override
 	public boolean tryAssign(Long driverId) {
+		if (!routingInsideLock) {
+			routingClient.estimate(driverId);
+		}
 		RLock lock = redissonClient.getLock("driver:lock:" + driverId);
 		boolean acquired;
 		try {
@@ -70,6 +85,9 @@ public class RedissonLockStrategy implements DriverLockStrategy {
 		}
 		boolean unlockDeferred = false;
 		try {
+			if (routingInsideLock) {
+				routingClient.estimate(driverId);
+			}
 			if (TransactionSynchronizationManager.isSynchronizationActive()) {
 				TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 					@Override

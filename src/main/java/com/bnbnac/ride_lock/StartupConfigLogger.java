@@ -24,25 +24,33 @@ public class StartupConfigLogger {
 	private final double candidateRadiusMeters;
 	private final int candidateLimit;
 	private final boolean virtualThreadsEnabled;
+	private final long routingDelayMillis;
+	private final boolean routingDelayInsideLock;
 
 	public StartupConfigLogger(DataSource dataSource,
 			@Value("${matching.lock-strategy:none}") String lockStrategy,
 			@Value("${matching.candidate-radius-meters:5000}") double candidateRadiusMeters,
 			@Value("${matching.candidate-limit:20}") int candidateLimit,
-			@Value("${spring.threads.virtual.enabled:false}") boolean virtualThreadsEnabled) {
+			@Value("${spring.threads.virtual.enabled:false}") boolean virtualThreadsEnabled,
+			@Value("${matching.routing-delay-ms:0}") long routingDelayMillis,
+			@Value("${matching.routing-delay-inside-lock:false}") boolean routingDelayInsideLock) {
 		this.dataSource = dataSource;
 		this.lockStrategy = lockStrategy;
 		this.candidateRadiusMeters = candidateRadiusMeters;
 		this.candidateLimit = candidateLimit;
 		this.virtualThreadsEnabled = virtualThreadsEnabled;
+		this.routingDelayMillis = routingDelayMillis;
+		this.routingDelayInsideLock = routingDelayInsideLock;
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
 	public void logEffectiveConfig() {
 		int maximumPoolSize = dataSource instanceof HikariDataSource hikari ? hikari.getMaximumPoolSize() : -1;
 		log.info("실행 설정 확인 - matching.lock-strategy={}, spring.threads.virtual.enabled={}, "
-						+ "hikari.maximum-pool-size={}, matching.candidate-radius-meters={}, matching.candidate-limit={}",
-				lockStrategy, virtualThreadsEnabled, maximumPoolSize, candidateRadiusMeters, candidateLimit);
+						+ "hikari.maximum-pool-size={}, matching.candidate-radius-meters={}, matching.candidate-limit={}, "
+						+ "matching.routing-delay-ms={}, matching.routing-delay-inside-lock={}",
+				lockStrategy, virtualThreadsEnabled, maximumPoolSize, candidateRadiusMeters, candidateLimit,
+				routingDelayMillis, routingDelayInsideLock);
 	}
 
 }
